@@ -1,0 +1,21 @@
+{
+  "name": "sal-infographic-generator",
+  "version": "2.0.0",
+  "description": "SAL - Automated Library Infographic Generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "generate": "node generate-infographic.js"
+  },
+  "keywords": ["infographic", "library", "koha", "marc21"],
+  "author": "SAL",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "jszip": "^3.10.1",
+    "multer": "^1.4.5-lts.2",
+    "puppeteer": "^25.5.0"
+  }
+}
