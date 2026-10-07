@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولد إنفوجرافيك الكتب والبطاقات الببليوجرافية - سال 2.0 (Koha / MARC)</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap">
+</head>
+
+<body>
+
+    <!-- ========== الشريط العلوي Header ========== -->
+    <header class="top-bar">
+        <div class="logo-area">
+            <div class="logo-icon">S</div>
+            <div class="logo-text">سال <span>SAL Koha Infographic Engine</span></div>
+        </div>
+        <div class="top-bar-actions">
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="loadPresetData('tech')">💡 كتاب تقني</button>
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="loadPresetData('history')">📜 كتاب تاريخي</button>
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="loadPresetData('lit')">📚 كتاب أدبي</button>
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="resetForm()">🔄 إعادة ضبط</button>
+        </div>
+    </header>
+
+    <!-- ========== التخطيط الرئيسي Main Layout ========== -->
+    <div class="main-layout">
+
+        <!-- ===== لوحة الإدخال اليسرى ===== -->
+        <aside class="input-panel">
+
+            <!-- شريط التبويبات -->
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('form')">
+                    <span class="tab-icon">📝</span> نموذج KOHA
+                </button>
+                <button class="tab-btn" onclick="switchTab('json')">
+                    <span class="tab-icon">💻</span> محرر JSON القياسي
+                </button>
+                <button class="tab-btn" onclick="switchTab('bulk')">
+                    <span class="tab-icon">📦</span> التوليد الجماعي (CSV/JSON)
+                </button>
+            </div>
+
+            <!-- محتوى التبويبات -->
+            <div class="tab-content-area">
+
+                <!-- 1. تبويب محرر النموذج -->
+                <div id="tab-form" class="tab-pane active">
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">بيانات العنوان والتسجيلة (MARC 001 / 245)</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 120px;">
+                            <label class="form-label">رقم التسجيلة (001)</label>
+                            <input type="text" id="f-biblio_id" class="form-input" placeholder="001" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">العنوان الرئيسي (245$a) *</label>
+                            <input type="text" id="f-title" class="form-input" placeholder="مثال: قواعد البيانات وأنظمة استرجاع المعلومات" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">العنوان الفرعي (245$b)</label>
+                        <input type="text" id="f-subtitle" class="form-input" placeholder="مثال: تصميم ذكي للبيانات .. بحث أسرع .. معرفة أدق" oninput="onFormInputChange()">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ملخص وفكرة الكتاب العامة (520$a)</label>
+                        <textarea id="f-description" class="form-textarea" placeholder="ملخص ببليوجرافي شامل للكتاب..." oninput="onFormInputChange()"></textarea>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">غلاف الكتاب والصور (3D Cover)</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="cover-upload-zone" id="coverDropzone" onclick="document.getElementById('coverFileInput').click()">
+                            <div id="coverUploadPlaceholder">
+                                <div class="cover-upload-icon">🖼️</div>
+                                <div class="cover-upload-text">اضغط هنا أو اسحب صورة غلاف الكتاب لرفعها (PNG / JPG)</div>
+                            </div>
+                            <img id="coverPreviewImg" src="" style="display:none;" />
+                        </div>
+                        <input type="file" id="coverFileInput" accept="image/*" style="display:none;" onchange="handleCoverUpload(event)">
+                        <button id="removeCoverBtn" class="btn btn-outline" style="display:none; margin-top:8px; width:100%; font-size:11px; color:var(--dash-danger);" onclick="removeCover()">❌ إزالة الغلاف والعودة للنمط الافتراضي</button>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">بيانات النشر والمسؤولية (MARC 100 / 250 / 260 / 300 / 490)</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">المؤلف الرئيسي / المشارك (100$a / 700$a)</label>
+                            <input type="text" id="f-author" class="form-input" placeholder="د. محمد فتحي عبد الهادي" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">الناشر ومكان النشر (260$b / 264$b)</label>
+                            <input type="text" id="f-publisher" class="form-input" placeholder="دار غريب" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">مكان النشر (260$a)</label>
+                            <input type="text" id="f-pubPlace" class="form-input" placeholder="القاهرة" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">سنة النشر (260$c)</label>
+                            <input type="text" id="f-pubYear" class="form-input" placeholder="2024" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">الصفحات (300$a)</label>
+                            <input type="text" id="f-pages" class="form-input" placeholder="318 صفحة" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">اسم السلسلة (490$a)</label>
+                            <input type="text" id="f-series" class="form-input" placeholder="سلسلة تقنية المعلومات" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">رقم الطبعة (250$a)</label>
+                            <input type="text" id="f-edition" class="form-input" placeholder="الطبعة الثانية" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">التصنيف والمعرفات (MARC 020 / 041 / 082 / 092 / 942)</span>
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">الردمك / ISBN (020$a)</label>
+                            <input type="text" id="f-isbn" class="form-input" placeholder="978-977-227-123-4" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">التصنيف العشري (082$a)</label>
+                            <input type="text" id="f-dewey" class="form-input" placeholder="025.04" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">رقم الاستدعاء (092$a)</label>
+                            <input type="text" id="f-callNumber" class="form-input" placeholder="025.04 ABD" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">نوع الوعاء (942$c)</label>
+                            <select id="f-itemType" class="form-select" onchange="onFormInputChange()">
+                                <option value="book">كتاب ورقي (Book)</option>
+                                <option value="ref">مرجع (Reference)</option>
+                                <option value="serial">دورية / مجلة (Serial)</option>
+                                <option value="av">وسائط سمعية وبصرية (AV)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">اللغة (041$a)</label>
+                            <input type="text" id="f-language" class="form-input" placeholder="ara / eng / fre" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">الفئة الموضوعية</label>
+                            <select id="f-category" class="form-select" onchange="onCategorySelect(this.value)">
+                                <option value="تقنية">تقنية المعلومات</option>
+                                <option value="مكتبات">علوم المكتبات</option>
+                                <option value="أدب">أدب وروايات</option>
+                                <option value="علوم">علوم طبيعية</option>
+                                <option value="تاريخ">تاريخ وحضارة</option>
+                                <option value="طب">علوم طبية</option>
+                                <option value="قانون">حقوق وقانون</option>
+                                <option value="إدارة">إدارة واقتصاد</option>
+                                <option value="فن">فنون وتصميم</option>
+                                <option value="تربية">تربية وتعليم</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">الموضوعات والرابط والملاحظات (650 / 500 / 856 / 590)</span>
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">موضوع 1 (650$a)</label>
+                            <input type="text" id="f-subject1" class="form-input" placeholder="تقنية المعلومات" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">موضوع 2 (650$a)</label>
+                            <input type="text" id="f-subject2" class="form-input" placeholder="استرجاع المعلومات" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">موضوع 3 (650$a)</label>
+                            <input type="text" id="f-subject3" class="form-input" placeholder="قواعد البيانات" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">رابط إلكتروني إن وجد (856$u)</label>
+                            <input type="text" id="f-url" class="form-input" placeholder="https://koha.library.edu/bib/001" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ملاحظات ببليوجرافية عامة (500$a)</label>
+                            <input type="text" id="f-notes" class="form-input" placeholder="يتضمن ملحقاً حول لغة SQL..." oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">بيانات المادة والحالة بالرف (MARC 952c / 952$7)</span>
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">حالة الوعاء (952$7)</label>
+                            <select id="f-status" class="form-select" onchange="onFormInputChange()">
+                                <option value="0">🟢 0 = متاح للإعارة</option>
+                                <option value="1">🟠 1 = مُعار حالياً</option>
+                                <option value="2">🔵 2 = مرجع (للاطلاع الداخلي)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">رمز الرف (952$c)</label>
+                            <input type="text" id="f-shelfLocation" class="form-input" placeholder="SEC2-S04" oninput="onFormInputChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">عدد النسخ المتاحة</label>
+                            <input type="text" id="f-copyCount" class="form-input" placeholder="3" oninput="onFormInputChange()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">نص موقع الوعاء الكامل (952$c + 952$l)</label>
+                        <input type="text" id="f-location" class="form-input" placeholder="مكتبة الدور الثاني - الرف 4" oninput="onFormInputChange()">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">كلمات حالة القارئ / Mood Tags (590$a)</label>
+                        <input type="text" id="f-moodTags" class="form-input" placeholder="تعلم, بحث, معرفة, تنظيم" oninput="onFormInputChange()">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">اقتباس ملهم من الكتاب</label>
+                        <textarea id="f-quote" class="form-textarea" placeholder="المعلومات لا تفيد ما لم تُنظّم..." oninput="onFormInputChange()"></textarea>
+                    </div>
+
+                    <div class="form-divider">
+                        <span class="form-divider-label">نسق الألوان (Color Palette)</span>
+                    </div>
+
+                    <div class="palette-picker" id="palettePicker">
+                        <!-- ثيمات جاهزة يتم انشاؤها بالنظام -->
+                    </div>
+
+                    <div class="form-row" style="margin-top:10px;">
+                        <div class="color-input-row">
+                            <label class="form-label" style="margin:0;">الرئيسي:</label>
+                            <input type="color" id="clr-primary" onchange="onCustomColorChange()">
+                            <input type="text" id="clr-primary-txt" class="form-input" oninput="onCustomColorTextChange()">
+                        </div>
+                        <div class="color-input-row">
+                            <label class="form-label" style="margin:0;">الثانوي:</label>
+                            <input type="color" id="clr-secondary" onchange="onCustomColorChange()">
+                            <input type="text" id="clr-secondary-txt" class="form-input" oninput="onCustomColorTextChange()">
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 2. تبويب محرر JSON المباشر -->
+                <div id="tab-json" class="tab-pane">
+                    <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                        <span class="form-label" style="margin:0;">كود JSON الموحد المباشر (Koha Schema)</span>
+                        <div>
+                            <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="formatJSONCode()">✨ تنسيق JSON</button>
+                            <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="copyJSONCode()">📋 نسخ الكود</button>
+                        </div>
+                    </div>
+                    <textarea id="jsonEditorArea" class="json-textarea" spellcheck="false" oninput="onJSONEditorInput()"></textarea>
+                    <div id="jsonStatus" style="margin-top:6px; font-size:11px; color:var(--dash-accent);">✅ كود JSON سليم وتزامن بنجاح</div>
+                </div>
+
+                <!-- 3. تبويب التوليد الجماعي Bulk Generator -->
+                <div id="tab-bulk" class="tab-pane">
+                    <div style="margin-bottom:16px;">
+                        <h4 style="font-size:13px; margin-bottom:6px;">التوليد الجماعي لإنفوجرافيك المكتبة (KOHA Bulk Engine)</h4>
+                        <p style="font-size:11.5px; color:var(--dash-muted); line-height:1.6;">
+                            يمكنك رفع ملف CSV أو JSON يحتوي على مئات التسجيلات الببليوجرافية من نظام KOHA مباشرة بالصيغة الموحدة، وسيتم توليد جميع الإنفوجرافيكس تلقائياً وضغطها في ملف ZIP واحد.
+                        </p>
+                    </div>
+
+                    <div class="bulk-upload-zone" id="bulkDropzone" onclick="document.getElementById('bulkFileInput').click()">
+                        <div class="bulk-icon">📁</div>
+                        <div class="bulk-title">اسحب ملف CSV أو JSON هنا أو انقر للاختيار</div>
+                        <div class="bulk-subtitle">يدعم الملفات المصدرة من KOHA أو الجداول الببليوجرافية الموحدة</div>
+                        <input type="file" id="bulkFileInput" accept=".csv, .json" style="display:none;" onchange="handleBulkFileSelect(event)">
+                    </div>
+
+                    <div style="margin-bottom: 16px; text-align: center;">
+                        <a href="/api/sample-csv" download class="btn btn-outline" style="display:inline-flex; width:auto; font-size:11px;">
+                            ⬇️ تحميل نموذج ملف CSV تجريبي الموحد لبطاقات Koha
+                        </a>
+                    </div>
+
+                    <div id="bulkFileInfo" style="display:none; background:var(--dash-card); padding:12px; border-radius:8px; margin-bottom:14px; font-size:12px;">
+                        📄 الملف المحدد: <strong id="bulkFileName" style="color:var(--dash-accent);"></strong>
+                    </div>
+
+                    <!-- شريط التقدم Progress Bar -->
+                    <div class="progress-container" id="bulkProgressContainer">
+                        <div class="progress-bar-outer">
+                            <div class="progress-bar-inner" id="bulkProgressBar"></div>
+                        </div>
+                        <div class="progress-text" id="bulkProgressText">جاري التوليد... (0%)</div>
+                    </div>
+
+                    <button class="btn btn-success" id="startBulkBtn" style="width:100%; padding:12px;" onclick="startBulkGeneration()">
+                        <span class="btn-text">🚀 بدء التوليد الجماعي وتنزيل ملف ZIP</span>
+                        <div class="spinner"></div>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- شريط الإجراءات والتصدير السفلي -->
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="generatePreviewHTML()">
+                    <span>⚡ معاينة فورية</span>
+                </button>
+                <button class="btn btn-success" onclick="downloadExport('png')">
+                    <span>🖼️ تنزيل PNG (High-DPI)</span>
+                </button>
+                <button class="btn btn-outline" onclick="downloadExport('pdf')">
+                    <span>📄 تصدير PDF</span>
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- ===== منطقة المعاينة اليمنى Preview Panel ===== -->
+        <main class="preview-panel">
+
+            <!-- شريط أدوات المعاينة Toolbar -->
+            <div class="preview-toolbar">
+                <div class="preview-toolbar-title">
+                    <span class="live-dot"></span> المعاينة الحية المباشرة (Live Retina Viewport)
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" title="تصغير" onclick="adjustZoom(-0.1)">-</button>
+                    <span class="zoom-level" id="zoomLevelText">100%</span>
+                    <button class="zoom-btn" title="تكبير" onclick="adjustZoom(0.1)">+</button>
+                    <button class="zoom-btn" title="إعادة تعيين التكبير" onclick="resetZoom()" style="font-size:11px;">1:1</button>
+                    <button class="zoom-btn" title="فتح المعاينة في نافذة جديدة" onclick="openPreviewInNewTab()">↗️</button>
+                </div>
+            </div>
+
+            <!-- منطقة العرض والإطار الإفتراضي Viewport Frame -->
+            <div class="preview-viewport">
+                <div class="preview-frame" id="previewFrameContainer">
+                    <iframe id="previewIframe" title="Infographic Live Preview"></iframe>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- شاشة التحميل Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">جاري المعالجة...</div>
+            <div class="loading-sub" id="loadingSub">يرجى الانتظار لحين الانتهاء من المعالجة الرسومية high-resolution</div>
+        </div>
+    </div>
+
+    <!-- إشعار Toast Floating Alert -->
+    <div class="toast" id="toast"></div>
+
+    <!-- JavaScript Logic Application -->
+    <script>
+        // ========== بيانات وتكوين الحالة البداية الموحدة Koha Schema ==========
+        let currentBookData = {
+            biblio_id: "001",
+            isbn: "978-977-227-123-4",
+            title: "قواعد البيانات وأنظمة استرجاع المعلومات",
+            subtitle: "تصميم ذكي للبيانات .. بحث أسرع .. معرفة أدق",
+            author: "د. محمد فتحي عبد الهادي",
+            edition: "الطبعة الثانية",
+            publisher: "دار غريب",
+            pubPlace: "القاهرة",
+            pubYear: "2024",
+            pages: "318 صفحة",
+            series: "سلسلة تقنية المعلومات والمكتبات الرقمية",
+            language: "ara",
+            dewey: "025.04",
+            callNumber: "025.04 ABD",
+            subject1: "تقنية المعلومات",
+            subject2: "استرجاع المعلومات",
+            subject3: "قواعد البيانات العلاقية",
+            category: "تقنية",
+            itemType: "book",
+            copyCount: "3",
+            shelfLocation: "SEC2-S04",
+            location: "مكتبة الدور الثاني - الرف 4",
+            status: "0",
+            description: "مرجع شامل يربط بين النظرية والتطبيق في بناء قواعد البيانات وأنظمة الاسترجاع الرقمية.",
+            notes: "يتضمن ملحقاً حول لغة SQL والبحث الدلالي في المكتبات الرقمية.",
+            url: "https://koha.library.edu/bib/001",
+            moodTags: ["تعلم", "بحث", "معرفة", "تنظيم"],
+            coverImage: "",
+            quote: "المعلومات لا تفيد ما لم تُنظّم، والتنظيم لا يكتمل إلا بنظام يتيح الوصول إليها بسهولة ودقة.",
+            color_palette: {
+                primary: "#0D3B66",
+                secondary: "#167D7F",
+                accent: "#29B6F6",
+                bg: "#EAF2F5",
+                card: "#FFFFFF",
+                text: "#1a1a2e"
+            }
+        };
+
+        const PRESET_TOPIC_PALETTES = {
+            'تقنية': { primary: '#0D3B66', secondary: '#167D7F', accent: '#29B6F6', bg: '#EAF2F5' },
+            'مكتبات': { primary: '#1B3A4B', secondary: '#1F5C5C', accent: '#E8C547', bg: '#F5F0E8' },
+            'أدب': { primary: '#4A1942', secondary: '#7B2D6E', accent: '#CE93D8', bg: '#F8F0F8' },
+            'علوم': { primary: '#1B5E20', secondary: '#2E7D32', accent: '#66BB6A', bg: '#F0F8F0' },
+            'تاريخ': { primary: '#5D4037', secondary: '#795548', accent: '#D7A86E', bg: '#FBF5EE' },
+            'طب': { primary: '#0D47A1', secondary: '#1565C0', accent: '#4FC3F7', bg: '#EBF5FB' },
+            'قانون': { primary: '#37474F', secondary: '#546E7A', accent: '#B0BEC5', bg: '#ECEFF1' },
+            'إدارة': { primary: '#1A237E', secondary: '#283593', accent: '#7986CB', bg: '#E8EAF6' },
+            'فن': { primary: '#BF360C', secondary: '#E64A19', accent: '#FF8A65', bg: '#FBE9E7' },
+            'تربية': { primary: '#00695C', secondary: '#00897B', accent: '#4DB6AC', bg: '#E0F2F1' }
+        };
+
+        let currentZoom = 1.0;
+        let updateDebounceTimer = null;
+        let selectedBulkFile = null;
+
+        // ========== Initialization عند فتح الصفحة ==========
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPaletteSwatches();
+            populateFormFromState();
+            updateJSONEditorView();
+            generatePreviewHTML();
+        });
+
+        // ========== إدارة التبويبات Tabs Switcher ==========
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+
+            const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabName));
+            if (btn) btn.classList.add('active');
+
+            const pane = document.getElementById(`tab-${tabName}`);
+            if (pane) pane.classList.add('active');
+
+            if (tabName === 'json') {
+                updateJSONEditorView();
+            }
+        }
+
+        // ========== تعبئة النموذج من الكائن الحاضر ==========
+        function populateFormFromState() {
+            document.getElementById('f-biblio_id').value = currentBookData.biblio_id || '001';
+            document.getElementById('f-title').value = currentBookData.title || '';
+            document.getElementById('f-subtitle').value = currentBookData.subtitle || '';
+            document.getElementById('f-description').value = currentBookData.description || '';
+            
+            document.getElementById('f-author').value = currentBookData.author || '';
+            document.getElementById('f-publisher').value = currentBookData.publisher || '';
+            document.getElementById('f-pubPlace').value = currentBookData.pubPlace || '';
+            document.getElementById('f-pubYear').value = currentBookData.pubYear || '';
+            document.getElementById('f-pages').value = currentBookData.pages || '';
+            document.getElementById('f-series').value = currentBookData.series || '';
+            document.getElementById('f-edition').value = currentBookData.edition || '';
+            
+            document.getElementById('f-isbn').value = currentBookData.isbn || '';
+            document.getElementById('f-dewey').value = currentBookData.dewey || '';
+            document.getElementById('f-callNumber').value = currentBookData.callNumber || '';
+            document.getElementById('f-language').value = currentBookData.language || 'ara';
+            document.getElementById('f-itemType').value = currentBookData.itemType || 'book';
+            document.getElementById('f-category').value = currentBookData.category || 'تقنية';
+
+            document.getElementById('f-subject1').value = currentBookData.subject1 || '';
+            document.getElementById('f-subject2').value = currentBookData.subject2 || '';
+            document.getElementById('f-subject3').value = currentBookData.subject3 || '';
+
+            document.getElementById('f-url').value = currentBookData.url || '';
+            document.getElementById('f-notes').value = currentBookData.notes || '';
+
+            document.getElementById('f-status').value = currentBookData.status !== undefined ? String(currentBookData.status) : '0';
+            document.getElementById('f-shelfLocation').value = currentBookData.shelfLocation || '';
+            document.getElementById('f-copyCount').value = currentBookData.copyCount || '1';
+            document.getElementById('f-location').value = currentBookData.location || '';
+            
+            const tags = Array.isArray(currentBookData.moodTags) ? currentBookData.moodTags.join(', ') : (currentBookData.moodTags || '');
+            document.getElementById('f-moodTags').value = tags;
+
+            document.getElementById('f-quote').value = currentBookData.quote || '';
+
+            // ألوان
+            const p = currentBookData.color_palette || PRESET_TOPIC_PALETTES['تقنية'];
+            document.getElementById('clr-primary').value = p.primary;
+            document.getElementById('clr-primary-txt').value = p.primary;
+            document.getElementById('clr-secondary').value = p.secondary;
+            document.getElementById('clr-secondary-txt').value = p.secondary;
+
+            // غلاف
+            if (currentBookData.coverImage) {
+                document.getElementById('coverPreviewImg').src = currentBookData.coverImage;
+                document.getElementById('coverPreviewImg').style.display = 'inline-block';
+                document.getElementById('coverUploadPlaceholder').style.display = 'none';
+                document.getElementById('removeCoverBtn').style.display = 'block';
+            } else {
+                document.getElementById('coverPreviewImg').style.display = 'none';
+                document.getElementById('coverUploadPlaceholder').style.display = 'block';
+                document.getElementById('removeCoverBtn').style.display = 'none';
+            }
+        }
+
+        // ========== متابعة التغييرات في الحقول المدخلة ==========
+        function onFormInputChange() {
+            currentBookData.biblio_id = document.getElementById('f-biblio_id').value;
+            currentBookData.title = document.getElementById('f-title').value;
+            currentBookData.subtitle = document.getElementById('f-subtitle').value;
+            currentBookData.description = document.getElementById('f-description').value;
+
+            currentBookData.author = document.getElementById('f-author').value;
+            currentBookData.publisher = document.getElementById('f-publisher').value;
+            currentBookData.pubPlace = document.getElementById('f-pubPlace').value;
+            currentBookData.pubYear = document.getElementById('f-pubYear').value;
+            currentBookData.pages = document.getElementById('f-pages').value;
+            currentBookData.series = document.getElementById('f-series').value;
+            currentBookData.edition = document.getElementById('f-edition').value;
+
+            currentBookData.isbn = document.getElementById('f-isbn').value;
+            currentBookData.dewey = document.getElementById('f-dewey').value;
+            currentBookData.callNumber = document.getElementById('f-callNumber').value;
+            currentBookData.language = document.getElementById('f-language').value;
+            currentBookData.itemType = document.getElementById('f-itemType').value;
+            currentBookData.category = document.getElementById('f-category').value;
+
+            currentBookData.subject1 = document.getElementById('f-subject1').value;
+            currentBookData.subject2 = document.getElementById('f-subject2').value;
+            currentBookData.subject3 = document.getElementById('f-subject3').value;
+
+            currentBookData.url = document.getElementById('f-url').value;
+            currentBookData.notes = document.getElementById('f-notes').value;
+
+            currentBookData.status = document.getElementById('f-status').value;
+            currentBookData.shelfLocation = document.getElementById('f-shelfLocation').value;
+            currentBookData.copyCount = document.getElementById('f-copyCount').value;
+            currentBookData.location = document.getElementById('f-location').value;
+
+            const moodStr = document.getElementById('f-moodTags').value;
+            currentBookData.moodTags = moodStr.split(',').map(s => s.trim()).filter(Boolean);
+
+            currentBookData.quote = document.getElementById('f-quote').value;
+
+            triggerLivePreview();
+        }
+
+        function triggerLivePreview() {
+            if (updateDebounceTimer) clearTimeout(updateDebounceTimer);
+            updateDebounceTimer = setTimeout(() => {
+                generatePreviewHTML();
+            }, 300);
+        }
+
+        // ========== المعاينة المباشرة المفتوحة عبر Server API ==========
+        async function generatePreviewHTML() {
+            try {
+                const res = await fetch('/api/generate-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentBookData)
+                });
+                if (!res.ok) throw new Error('فشل جلب المعاينة');
+                const html = await res.text();
+
+                const iframe = document.getElementById('previewIframe');
+                iframe.srcdoc = html;
+            } catch (err) {
+                console.error('Preview error:', err);
+            }
+        }
+
+        // ========== الألوان واللوحات الجاهزة ==========
+        function renderPaletteSwatches() {
+            const container = document.getElementById('palettePicker');
+            container.innerHTML = '';
+
+            for (const [topic, pal] of Object.entries(PRESET_TOPIC_PALETTES)) {
+                const swatch = document.createElement('div');
+                swatch.className = 'palette-swatch';
+                swatch.title = `لوحة ${topic}`;
+                swatch.style.background = `linear-gradient(135deg, ${pal.primary} 50%, ${pal.secondary} 50%)`;
+                swatch.onclick = () => selectPalette(topic, pal);
+                container.appendChild(swatch);
+            }
+        }
+
+        function selectPalette(topic, pal) {
+            currentBookData.color_palette = { ...pal };
+            document.getElementById('clr-primary').value = pal.primary;
+            document.getElementById('clr-primary-txt').value = pal.primary;
+            document.getElementById('clr-secondary').value = pal.secondary;
+            document.getElementById('clr-secondary-txt').value = pal.secondary;
+            
+            showToast(`تم تطبيق لوحة ألوان موضوع: ${topic}`);
+            triggerLivePreview();
+        }
+
+        function onCategorySelect(category) {
+            currentBookData.category = category;
+            if (PRESET_TOPIC_PALETTES[category]) {
+                selectPalette(category, PRESET_TOPIC_PALETTES[category]);
+            } else {
+                triggerLivePreview();
+            }
+        }
+
+        function onCustomColorChange() {
+            const primary = document.getElementById('clr-primary').value;
+            const secondary = document.getElementById('clr-secondary').value;
+            document.getElementById('clr-primary-txt').value = primary;
+            document.getElementById('clr-secondary-txt').value = secondary;
+
+            currentBookData.color_palette.primary = primary;
+            currentBookData.color_palette.secondary = secondary;
+            triggerLivePreview();
+        }
+
+        function onCustomColorTextChange() {
+            const primary = document.getElementById('clr-primary-txt').value;
+            const secondary = document.getElementById('clr-secondary-txt').value;
+            currentBookData.color_palette.primary = primary;
+            currentBookData.color_palette.secondary = secondary;
+            triggerLivePreview();
+        }
+
+        // ========== رفع الغلاف وتعديله Upload Cover ==========
+        async function handleCoverUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('cover', file);
+
+            try {
+                showLoading('جاري معالجة ورفع صورة الغلاف...');
+                const res = await fetch('/api/upload-cover', { method: 'POST', body: formData });
+                const data = await res.json();
+                hideLoading();
+
+                if (data.coverImage) {
+                    currentBookData.coverImage = data.coverImage;
+                    document.getElementById('coverPreviewImg').src = data.coverImage;
+                    document.getElementById('coverPreviewImg').style.display = 'inline-block';
+                    document.getElementById('coverUploadPlaceholder').style.display = 'none';
+                    document.getElementById('removeCoverBtn').style.display = 'block';
+                    showToast('✅ تم رفع صورة الغلاف وتجميع المجسم 3D بنجاح!');
+                    triggerLivePreview();
+                }
+            } catch (err) {
+                hideLoading();
+                showToast('❌ حدث خطأ أثناء رفع صورة الغلاف', true);
+            }
+        }
+
+        function removeCover() {
+            currentBookData.coverImage = '';
+            document.getElementById('coverPreviewImg').style.display = 'none';
+            document.getElementById('coverUploadPlaceholder').style.display = 'block';
+            document.getElementById('removeCoverBtn').style.display = 'none';
+            document.getElementById('coverFileInput').value = '';
+            showToast('تم إزالة الغلاف والعودة للغلاف الافتراضي');
+            triggerLivePreview();
+        }
+
+        // ========== محرر JSON والتزامن Editor Sync ==========
+        function updateJSONEditorView() {
+            const area = document.getElementById('jsonEditorArea');
+            area.value = JSON.stringify(currentBookData, null, 2);
+        }
+
+        function onJSONEditorInput() {
+            const text = document.getElementById('jsonEditorArea').value;
+            const statusDiv = document.getElementById('jsonStatus');
+            try {
+                const parsed = JSON.parse(text);
+                currentBookData = parsed;
+                statusDiv.innerHTML = '✅ كود JSON سليم وتم تحديث النموذج بنجاح';
+                statusDiv.style.color = 'var(--dash-accent)';
+                populateFormFromState();
+                triggerLivePreview();
+            } catch (err) {
+                statusDiv.innerHTML = '⚠️ خطأ في تركيب كود JSON: ' + err.message;
+                statusDiv.style.color = 'var(--dash-danger)';
+            }
+        }
+
+        function formatJSONCode() {
+            updateJSONEditorView();
+            showToast('تم تنسيق كود JSON بنجاح');
+        }
+
+        function copyJSONCode() {
+            const area = document.getElementById('jsonEditorArea');
+            navigator.clipboard.writeText(area.value);
+            showToast('📋 تم نسخ كود JSON للحافظة');
+        }
+
+        // ========== التوليد الجماعي Bulk Generation ==========
+        function handleBulkFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedBulkFile = file;
+
+            document.getElementById('bulkFileName').innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            document.getElementById('bulkFileInfo').style.display = 'block';
+        }
+
+        async function startBulkGeneration() {
+            if (!selectedBulkFile) {
+                showToast('⚠️ يرجى اختيار ملف CSV أو JSON أولاً', true);
+                return;
+            }
+
+            const btn = document.getElementById('startBulkBtn');
+            const progressContainer = document.getElementById('bulkProgressContainer');
+            const progressBar = document.getElementById('bulkProgressBar');
+            const progressText = document.getElementById('bulkProgressText');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+            progressContainer.classList.add('visible');
+            progressBar.style.width = '0%';
+            progressText.innerText = 'جاري الاتصال بالسيرفر لبدء التوليد...';
+
+            const formData = new FormData();
+            formData.append('file', selectedBulkFile);
+
+            try {
+                const res = await fetch('/api/bulk-generate-stream', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // الاحتفاظ بالسطر الأخير غير المكتمل
+
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (trimmedLine.startsWith('data: ')) {
+                            const data = JSON.parse(trimmedLine.replace(/^data:\s*/, ''));
+                            if (data.type === 'start') {
+                                progressText.innerText = `بدء توليد ${data.total} بطاقة ببليوجرافية...`;
+                            } else if (data.type === 'progress') {
+                                const pct = Math.round((data.current / data.total) * 100);
+                                progressBar.style.width = `${pct}%`;
+                                progressText.innerText = `تم إنتاج: BIB-${data.biblioId} (${data.current}/${data.total}) - ${pct}%`;
+                            } else if (data.type === 'complete') {
+                                progressBar.style.width = '100%';
+                                progressText.innerText = '🎉 تم الانتهاء بنجاح! جاري تحضير رابط التنزيل...';
+
+                                const blob = base64ToBlob(data.zipBase64, 'application/zip');
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'sal-infographics-koha.zip';
+                                a.click();
+
+                                showToast('✅ تم تنزيل الأرشيف المضغوط sal-infographics-koha.zip');
+                            } else if (data.type === 'error') {
+                                showToast('❌ حدث خطأ أثناء التوليد: ' + data.message, true);
+                                progressText.innerText = '❌ فشل التوليد: ' + data.message;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                showToast('❌ حدث خطأ أثناء التوليد الجماعي: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        }
+
+        function base64ToBlob(base64, type) {
+            const binary = atob(base64);
+            const array = [];
+            for (let i = 0; i < binary.length; i++) {
+                array.push(binary.charCodeAt(i));
+            }
+            return new Blob([new Uint8Array(array)], { type });
+        }
+
+        // ========== تصدير وتنزيل البطاقات الفردية Single Exports ==========
+        async function downloadExport(format = 'png') {
+            showLoading(`جاري توليد الملف بصيغة ${format.toUpperCase()} بأعلى دقة...`);
+            try {
+                const response = await fetch(`/api/generate?format=${format}&scale=2`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentBookData)
+                });
+
+                if (!response.ok) throw new Error('فشل توليد البطاقة من السيرفر');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `infographic-BIB-${currentBookData.biblio_id || '001'}.${format}`;
+                a.click();
+                showToast(`✅ تم تحميل البطاقة بصيغة ${format.toUpperCase()} بنجاح!`);
+            } catch (err) {
+                showToast(`❌ خطأ في التصدير: ${err.message}`, true);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ========== أدوات التحكم بالتكبير Zoom & Preview Viewport ==========
+        function adjustZoom(delta) {
+            currentZoom = Math.min(Math.max(0.4, currentZoom + delta), 2.0);
+            applyZoom();
+        }
+
+        function resetZoom() {
+            currentZoom = 1.0;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const frame = document.getElementById('previewFrameContainer');
+            frame.style.transform = `scale(${currentZoom})`;
+            document.getElementById('zoomLevelText').innerText = `${Math.round(currentZoom * 100)}%`;
+        }
+
+        function openPreviewInNewTab() {
+            const iframe = document.getElementById('previewIframe');
+            const win = window.open();
+            win.document.write(iframe.srcdoc);
+            win.document.close();
+        }
+
+        // ========== النماذج المجهزة مسبقاً Presets بمواصفات KOHA ==========
+        function loadPresetData(type) {
+            if (type === 'history') {
+                currentBookData = {
+                    biblio_id: "002",
+                    isbn: "978-977-102-456-8",
+                    title: "تاريخ البيمارستانات في الإسلام",
+                    subtitle: "مؤسسات الشفاء الرائدة وعلامات الحضارة",
+                    author: "أحمد عيسى بك",
+                    edition: "طبعة محققة",
+                    publisher: "دار المعارف",
+                    pubPlace: "القاهرة",
+                    pubYear: "2020",
+                    pages: "420 صفحة",
+                    series: "سلسلة تاريخ الطب عند العرب",
+                    language: "ara",
+                    dewey: "610.9",
+                    callNumber: "610.9 ISS",
+                    subject1: "تاريخ الطب",
+                    subject2: "البيمارستانات",
+                    subject3: "الحضارة الإسلامية",
+                    category: "تاريخ",
+                    itemType: "book",
+                    copyCount: "1",
+                    shelfLocation: "HIS-A12",
+                    location: "قسم الكتب التاريخية - الرف 12",
+                    status: "2",
+                    description: "دراسة وثائقية تاريخية موثقة عن المستشفيات والتعليم الطبي في العصور الإسلامية.",
+                    notes: "مرجع تاريخي نادر مخصص للاطلاع الداخلي فقط.",
+                    url: "https://koha.library.edu/bib/002",
+                    moodTags: ["تاريخ", "حضارة", "طب", "وثائق"],
+                    coverImage: "",
+                    quote: "لم تكن البيمارستانات مجرد دور علاج، بل كانت كليات طب ومراكز بحوث علمية متقدمة.",
+                    color_palette: PRESET_TOPIC_PALETTES['تاريخ']
+                };
+            } else if (type === 'lit') {
+                currentBookData = {
+                    biblio_id: "003",
+                    isbn: "978-977-145-789-1",
+                    title: "عبقرية عمر",
+                    subtitle: "دراسة شخصية الفاروق والعدالة الناجزة",
+                    author: "عباس محمود العقاد",
+                    edition: "طبعة خاصة",
+                    publisher: "نهضة مصر",
+                    pubPlace: "القاهرة",
+                    pubYear: "2022",
+                    pages: "210 صفحة",
+                    series: "سلسلة العبقريات الإسلامية",
+                    language: "ara",
+                    dewey: "922.97",
+                    callNumber: "922.97 AQQ",
+                    subject1: "الأدب العربي",
+                    subject2: "تاريخ الخلفاء",
+                    subject3: "السير والراويات",
+                    category: "أدب",
+                    itemType: "book",
+                    copyCount: "5",
+                    shelfLocation: "LIT-05",
+                    location: "قسم الأدب - الرف 5",
+                    status: "0",
+                    description: "تحليل أدبي وإنساني ونفسي عميق لشخصية الخليفة الفاروق عمر بن الخطاب.",
+                    notes: "نسخ متوفرة للإعارة المباشرة للجمهور.",
+                    url: "https://koha.library.edu/bib/003",
+                    moodTags: ["أدب", "سيرة", "قيادة", "إلهام"],
+                    coverImage: "",
+                    quote: "متى استعبدتم الناس وقد ولدتهم أمهاتهم أحراراً؟",
+                    color_palette: PRESET_TOPIC_PALETTES['أدب']
+                };
+            } else {
+                currentBookData = {
+                    biblio_id: "001",
+                    isbn: "978-977-227-123-4",
+                    title: "قواعد البيانات وأنظمة استرجاع المعلومات",
+                    subtitle: "تصميم ذكي للبيانات .. بحث أسرع .. معرفة أدق",
+                    author: "د. محمد فتحي عبد الهادي",
+                    edition: "الطبعة الثانية",
+                    publisher: "دار غريب",
+                    pubPlace: "القاهرة",
+                    pubYear: "2024",
+                    pages: "318 صفحة",
+                    series: "سلسلة تقنية المعلومات والمكتبات الرقمية",
+                    language: "ara",
+                    dewey: "025.04",
+                    callNumber: "025.04 ABD",
+                    subject1: "تقنية المعلومات",
+                    subject2: "استرجاع المعلومات",
+                    subject3: "قواعد البيانات العلاقية",
+                    category: "تقنية",
+                    itemType: "book",
+                    copyCount: "3",
+                    shelfLocation: "SEC2-S04",
+                    location: "مكتبة الدور الثاني - الرف 4",
+                    status: "0",
+                    description: "مرجع شامل يربط بين النظرية والتطبيق في بناء قواعد البيانات وأنظمة الاسترجاع الرقمية.",
+                    notes: "يتضمن ملحقاً حول لغة SQL والبحث الدلالي في المكتبات الرقمية.",
+                    url: "https://koha.library.edu/bib/001",
+                    moodTags: ["تعلم", "بحث", "معرفة", "تنظيم"],
+                    coverImage: "",
+                    quote: "المعلومات لا تفيد ما لم تُنظّم، والتنظيم لا يكتمل إلا بنظام يتيح الوصول إليها بسهولة ودقة.",
+                    color_palette: PRESET_TOPIC_PALETTES['تقنية']
+                };
+            }
+            populateFormFromState();
+            showToast('تم تحميل بيانات نموذج Koha الببليوجرافي');
+            triggerLivePreview();
+        }
+
+        function resetForm() {
+            location.reload();
+        }
+
+        // ========== الإشعارات وشاشة التحميل Notifications & Overlay ==========
+        function showLoading(msg) {
+            document.getElementById('loadingText').innerText = msg || 'جاري المعالجة...';
+            document.getElementById('loadingOverlay').classList.add('visible');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('visible');
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `toast visible ${isError ? 'error' : 'success'}`;
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 3500);
+        }
+    </script>
+</body>
+
+</html>
